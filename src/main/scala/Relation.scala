@@ -1,8 +1,8 @@
 import cats.kernel.Eq
 
 import scala.collection.immutable.TreeSet
-import AlgGraphHK.{Graph => G}
-import AlgGraphHK.syntax._
+import AlgebraicGraph.{Graph => G}
+import AlgebraicGraph.syntax._
 
 object Relation {
 

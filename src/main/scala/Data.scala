@@ -30,7 +30,6 @@ object Data {
     }
   }
 
-
   implicit class EnrichTreeMap[K, V](val x: TreeMap[K, V]) {
     def unionWith(y: TreeMap[K, V], f: (V, V) => V)(implicit
         orderK: Order[K]
@@ -38,18 +37,6 @@ object Data {
       case (k, kv) => (k, kv.map(_._2).reduce(f))
     }
   }
-//
-//  type Checked[A] = Either[String, A]
-//
-//  type CheckedT[F[_], A] = Newtype[F[Checked[A]], CheckedTOps[F, A]]
-//
-//  def CheckedT[F[_], A](v: F[Checked[A]]): CheckedT[F, A] = newtype(v)
-//
-//  case class CheckedTOps[F[_], A](v: F[Checked[A]]) {
-//    val getCheckedT: F[Checked[A]] = v
-//  }
-//  implicit def mkCheckedTOps[F[_], A](v: F[Checked[A]]): CheckedTOps[F, A] =
-//    CheckedTOps[F, A](v)
 
   private type InnerMap[A] = TreeMap[A, TreeSet[A]]
 
@@ -94,11 +81,6 @@ object Data {
     }
 
   }
-//  def AdjacencyMap[A](v: InnerMap[A]): AdjacencyMap[A] = newtype(v)
-
-//  implicit class AdjacencyMapOps[A](val adjacencyMap: InnerMap[A]) extends AnyVal {
-//    def overlay(y: AdjacencyMap[A]) = adjacencyMap.concat(y.adjacencyMap)
-//  }
 
   case class AdjacencyMapOps[A](v: InnerMap[A]) {
     @inline def adjacencyMap: InnerMap[A] = v

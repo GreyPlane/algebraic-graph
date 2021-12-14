@@ -1,94 +1,160 @@
+import Data.AdjacencyMap
+import cats.Monad
+import cats.Show
+import cats.kernel.Order
+import cats.implicits._
 
+import scala.collection.immutable.TreeSet
 
 object AlgebraicGraph {
-  case class Relation[T](domain: Set[T], relation: Set[(T, T)])
 
-  trait Graph[G] {
+  sealed trait Graph[+A]
+  case object Empty extends Graph[Nothing]
+  final case class Vertex[A](a: A) extends Graph[A]
+  final case class Overlay[A](x: Graph[A], y: Graph[A]) extends Graph[A]
+  final case class Connect[A](x: Graph[A], y: Graph[A]) extends Graph[A]
 
-    type Vertex
+  def foldg[A, B](e: B, v: A => B, o: (B, B) => B, c: (B, B) => B)(
+      g: Graph[A]
+  ): B =
+    g match {
+      case Empty         => e
+      case Vertex(x)     => v(x)
+      case Overlay(x, y) => o(foldg(e, v, o, c)(x), foldg(e, v, o, c)(y))
+      case Connect(x, y) => c(foldg(e, v, o, c)(x), foldg(e, v, o, c)(y))
+    }
 
-    val empty: G
+  object syntax {
+    implicit class GraphOps[A](val g: Graph[A]) extends AnyVal {
+      def fold[B](e: B, v: A => B, o: (B, B) => B, c: (B, B) => B): B =
+        foldg(e, v, o, c)(g)
 
-    def vertex(vertex: Vertex): G
+      def `+`(y: Graph[A]): Graph[A] = Overlay(g, y)
 
-    def overlay(x: G, y: G): G
+      def `*`(y: Graph[A]): Graph[A] = Connect(g, y)
 
-    def connect(x: G, y: G): G
+      import Data.implicits._
 
-  }
+      def toAdjacencyMap(implicit order: Order[A]): AdjacencyMap[A] =
+        g.fold[AdjacencyMap[A]](
+          AdjacencyMap.empty[A],
+          _.vertex,
+          AdjacencyMap.overlay,
+          AdjacencyMap.connect
+        )
 
-  object Graph {
-    type Aux[G, V] = Graph[G] { type Vertex = V }
+      def vertexSet(implicit order: Order[A]): TreeSet[A] = g.fold[TreeSet[A]](
+        TreeSet.empty[A],
+        TreeSet(_),
+        _ union _,
+        _ union _
+      )
 
-    def apply[G, V](implicit graph: Graph.Aux[G, V]): Graph.Aux[G, V] = graph
+      def edgeList(implicit order: Order[A]) = g.toAdjacencyMap.edgeList
 
-    def instance[G, V](
-        e: G,
-        f1: V => G,
-        f2: (G, G) => G,
-        f3: (G, G) => G
-    ): Aux[G, V] = new Graph[G] {
-      type Vertex = V
-      val empty: G = e
+      def toList: List[A] = g match {
+        case Empty         => List.empty[A]
+        case Vertex(a)     => List(a)
+        case Overlay(x, y) => x.toList ++ x.toList
+        case Connect(x, y) => x.toList ++ y.toList
+      }
 
-      def vertex(vertex: V): G = f1(vertex)
-
-      def overlay(x: G, y: G): G = f2(x, y)
-
-      def connect(x: G, y: G): G = f3(x, y)
+      def mergeVertices(p: A => Boolean, v: A)(implicit order: Order[A]) =
+        Graph.mergeVertices(p, v, g)
     }
   }
 
-  trait GraphFunctor[A] {
-    type Graph
-    type Vertex
-    def gfor(f: A => Vertex)(implicit g: Graph.Aux[Graph, A]): Graph
+  object Graph {
+    import syntax._
+    import implicits._
+
+    def empty[A]: Graph[A] = Empty
+    @inline def vertex[A](a: A): Graph[A] = Vertex(a)
+    @inline def overlay[A](x: Graph[A], y: Graph[A]): Graph[A] = Overlay(x, y)
+    @inline def connect[A](x: Graph[A], y: Graph[A]): Graph[A] = Connect(x, y)
+    def overlays[A](xs: List[Graph[A]]) = xs.foldRight(empty[A])(_ + _)
+    def connects[A](xs: List[Graph[A]]) = xs.foldRight(empty[A])(_ * _)
+    def edge[A](e: (A, A)): Graph[A] = vertex(e._1) * vertex(e._2)
+    def edges[A](es: List[(A, A)]) = overlays(es.map(edge))
+    def vertices[A](vs: List[A]) = overlays(vs.map(vertex))
+    def clique[A](vs: List[A]) = connects(vs.map(vertex))
+    def star[A](v: A, vs: List[A]): Graph[A] = connect(vertex(v), vertices(vs))
+    def mergeVertices[A](p: A => Boolean, v: A, g: Graph[A])(implicit
+        order: Order[A]
+    ) = g.map(u => if (p(u)) v else u)
+    def box[A, B](x: Graph[A], y: Graph[B]): Graph[(A, B)] = {
+      val xs = y.toList.map(b => x.map(_ -> b))
+      val ys = x.toList.map(a => y.map(a -> _))
+      overlays(xs ++ ys)
+    }
   }
 
-  object GraphFunctor {
-    type Aux[A, G, V] = GraphFunctor[A] { type Graph = G; type Vertex = V }
+  object implicits {
 
-    def apply[A, G, V](ff: (A => V) => G): Aux[A, G, V] =
-      new GraphFunctor[A] {
-        type Graph = G
-        type Vertex = V
-        def gfor(f: A => V)(implicit g: Graph.Aux[G, A]): G = ff(f)
+    import syntax._
+
+    //    implicit def graphApplicative: Applicative[Graph] = new Applicative[Graph] {
+    //      def pure[A](x: A): Graph[A] = Vertex(x)
+    //
+    //      def ap[A, B](ff: Graph[A => B])(fa: Graph[A]): Graph[B] = ff.foldg(
+    //        Empty,
+    //        f => fa.foldg(???, f, ???, ???),
+    //        Overlay[B],
+    //        Connect[B]
+    //      )
+    //    }
+
+    implicit def graphMonad: Monad[Graph] = new Monad[Graph] {
+      def flatMap[A, B](fa: Graph[A])(f: A => Graph[B]): Graph[B] =
+        fa.fold(Graph.empty[B], f, Overlay[B], Connect[B])
+
+      def tailRecM[A, B](a: A)(f: A => Graph[Either[A, B]]): Graph[B] = f(
+        a
+      ) match {
+        case Empty     => Empty
+        case Vertex(a) => a.fold(tailRecM(_)(f), Vertex(_))
+        case Overlay(x, y) =>
+          x.fold(
+            Empty,
+            _.fold(tailRecM(_)(f), Vertex(_)),
+            Overlay[B],
+            Connect[B]
+          ) + y.fold(
+            Empty,
+            _.fold(tailRecM(_)(f), Vertex(_)),
+            Overlay[B],
+            Connect[B]
+          )
+        case Connect(x, y) =>
+          x.fold(
+            Empty,
+            _.fold(tailRecM(_)(f), Vertex(_)),
+            Overlay[B],
+            Connect[B]
+          ) * y.fold(
+            Empty,
+            _.fold(tailRecM(_)(f), Vertex(_)),
+            Overlay[B],
+            Connect[B]
+          )
       }
+
+      def pure[A](x: A): Graph[A] = Vertex(x)
+    }
+
+    implicit def graphShow[A]: Show[Graph[A]] = new Show[Graph[A]] {
+      def show(t: Graph[A]): String = {
+        def go(p: Boolean, graph: Graph[A]): String = graph match {
+          case Empty              => "empty"
+          case Vertex(x)          => x.toString
+          case Overlay(x, y) if p => "(" + go(false, graph) + ")"
+          case Overlay(x, y)      => go(false, x) + " + " + go(false, y)
+          case Connect(x, y)      => go(true, x) + " * " + go(true, y)
+        }
+
+        go(false, t);
+      }
+    }
+
   }
-
-  //  implicit def graphFunctorGraph[A, G, V](implicit g: Graph.Aux[G, V]): Graph.Aux[GraphFunctor.Aux[A, G, V], A] = Graph.instance(
-  //    GraphFunctor(_ => g.empty),
-  //    x => GraphFunctor(f => g.vertex(f(x))),
-  //    ???, ???
-  //  )
-  //
-  //  implicit def graphFunctor[A, G, V](implicit g: Graph.Aux[G, V]): GraphFunctor.Aux[A, G, V] = ???
-
-  implicit def relationGraph[V]: Graph.Aux[Relation[V], V] = Graph.instance(
-    Relation(Set.empty, Set.empty),
-    (v) => Relation(Set(v), Set.empty),
-    (x, y) => Relation(x.domain union y.domain, x.relation union y.relation),
-    (x, y) =>
-      Relation(
-        x.domain union y.domain,
-        x.relation union y.relation union (for {
-          a <- x.domain; b <- y.domain
-        } yield (a, b))
-      )
-  )
-
-  // implicit def graphFunctorGraph[V]: Graph.Aux[GraphFunctor[V], V]
-
-  def clique[G, V](xs: List[V])(implicit g: Graph.Aux[G, V]): G =
-    xs.map(g.vertex).foldRight(g.empty)(g.connect)
-
-  //  def gmap[A, G, V](f: A => V, gf: GraphFunctor.Aux[A, G, V])(implicit g: Graph.Aux[G, V]): G = gf.gfor(f)
-
-  val g: Relation[Int] = clique(List(1, 2, 3))
-
-  //  val gg: GraphFunctor.Aux[Int, Relation[Int], String] = clique(List(1,2,3))
-  //
-  //  val fg = gg.gfor(x => x.toString)
-  //  val fg = gmap[Int, Relation[String], String](_.toString, gg)
-  val x = 1
 }

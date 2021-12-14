@@ -4,8 +4,14 @@ import cats._
 import cats.implicits._
 import cats.derived.semiauto
 
+import scala.collection.immutable.TreeMap
+
 case class Branch(toStep: Int, criteria: List[Int])
-case class StepLike(name: String, stepType: String, criteria: List[Int])
+case class StepLike(name: String, stepType: String, criteria: List[Int]) {
+  override def toString() = {
+    name
+  }
+}
 case class Step(id: Int, stepType: String, branch: List[Branch])
 
 class Test extends AnyWordSpecLike with Matchers {
@@ -17,24 +23,39 @@ class Test extends AnyWordSpecLike with Matchers {
 //  val sss = 1 :: String :: HNil
 //  sss.map
   "it should work" in {
-    import AlgGraphHK._
-    import AlgGraphHK.Graph._
-    import AlgGraphHK.implicits._
-    import AlgGraphHK.syntax._
+    import AlgebraicGraph._
+    import AlgebraicGraph.Graph._
+    import AlgebraicGraph.implicits._
+    import AlgebraicGraph.syntax._
     import shapeless._
     import shapeless.newtype._
 
-    val propertyStep = StepLike("branch-1", "branch", List.empty)
-    val done = StepLike("done-1", "done", List(1))
-    val sendSmsAction = StepLike("sendSms-1", "action", List(2))
+    val propertyStep = StepLike("has-openid-branch", "branch", List.empty)
+    val propertyStep2 = StepLike("has-mobile-branch", "branch", List.empty)
+    val done = StepLike("done", "done", List(1))
+    val done2 = StepLike("done-mobile-branch", "done", List(1))
+    val sendSmsAction = StepLike("sendSms", "action", List(2))
+    val sendTemplateMessageAction =
+      StepLike("sendTemplateMessage", "action", List(2))
 
-    val graph = star(propertyStep, List(sendSmsAction, done))
-    val vs = graph.vertexSet.zipWithIndex.toMap
+    val stars = List(
+      List(propertyStep, sendSmsAction, propertyStep2),
+      List(propertyStep2, sendTemplateMessageAction, done)
+    )
+      .map(vs => star(vs.head, vs.tail))
+    val g3 = overlay(stars.head, stars(1))
+    val graph = overlays(stars)
+//    val graph = star(propertyStep, List(sendTemplateMessageAction, done))
+    val vs = TreeMap.from(graph.vertexSet.zipWithIndex)
 
     val indexedGraph = graph.map(s => s -> vs(s))
 
-    val steps = indexedGraph.toAdjacencyMap.adjacencyMap
-      .map { case ((StepLike(name, stepType, criteria), i), branches) =>
+    val s1 = graph.toAdjacencyMap
+    val s2 = g3.toAdjacencyMap
+    val sss = g3.show
+
+    val steps = indexedGraph.toAdjacencyMap.adjacencyMap.map {
+      case ((StepLike(name, stepType, criteria), i), branches) =>
         Step(
           i,
           stepType,
@@ -43,9 +64,8 @@ class Test extends AnyWordSpecLike with Matchers {
               Branch(i, criteria)
           }.toList
         )
-      }
+    }.toList
 
-    Graph.vertex(1) + Graph.vertex(2) * Graph.vertex(3)
     val g = Graph
       .clique(List(1, 2, 3))
       .map(_ + 2)
