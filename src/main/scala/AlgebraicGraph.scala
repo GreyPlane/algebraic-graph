@@ -67,6 +67,7 @@ object AlgebraicGraph {
   object Graph {
     import syntax._
     import implicits._
+    import collectionExts._
 
     def empty[A]: Graph[A] = Empty
     @inline def vertex[A](a: A): Graph[A] = Vertex(a)
@@ -79,6 +80,12 @@ object AlgebraicGraph {
     def vertices[A](vs: List[A]) = overlays(vs.map(vertex))
     def clique[A](vs: List[A]) = connects(vs.map(vertex))
     def star[A](v: A, vs: List[A]): Graph[A] = connect(vertex(v), vertices(vs))
+    def ladder[A](vs: List[A], step: Int): Graph[A] = overlays(vs.partition(step, 1).map(vvs => star(vvs.head, vvs.tail)))
+    def path[A](vs: List[A]): Graph[A] = vs match {
+      case Nil => empty[A]
+      case x :: Nil => vertex(x)
+      case _ => overlays(vs.zip(vs.tail).map(v => connect(vertex(v._1), vertex(v._2))))
+    }
     def mergeVertices[A](p: A => Boolean, v: A, g: Graph[A])(implicit
         order: Order[A]
     ) = g.map(u => if (p(u)) v else u)

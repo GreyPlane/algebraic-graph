@@ -4,39 +4,10 @@ import shapeless._
 import shapeless.newtype._
 
 import scala.collection.immutable.{TreeMap, TreeSet}
-import scala.collection.mutable
 
 object Data {
 
-  implicit class EnrichList[T](val x: List[T]) {
-    def groupBy_[K](
-        f: T => K
-    )(implicit order: Order[K]): TreeMap[K, List[T]] = {
-      val m = mutable.TreeMap.empty[K, mutable.Builder[T, List[T]]]
-      val it = x.iterator
-      while (it.hasNext) {
-        val elem = it.next()
-        val key = f(elem)
-        val bldr = m.getOrElseUpdate(key, List.newBuilder[T])
-        bldr += elem
-      }
-      var result = TreeMap.empty[K, List[T]]
-      val mapIt = m.iterator
-      while (mapIt.hasNext) {
-        val (k, v) = mapIt.next()
-        result = result.updated(k, v.result())
-      }
-      result
-    }
-  }
-
-  implicit class EnrichTreeMap[K, V](val x: TreeMap[K, V]) {
-    def unionWith(y: TreeMap[K, V], f: (V, V) => V)(implicit
-        orderK: Order[K]
-    ): TreeMap[K, V] = (List.from(x) ++ List.from(y)).groupBy_(_._1).map {
-      case (k, kv) => (k, kv.map(_._2).reduce(f))
-    }
-  }
+  import collectionExts._
 
   private type InnerMap[A] = TreeMap[A, TreeSet[A]]
 

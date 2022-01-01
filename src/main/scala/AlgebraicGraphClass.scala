@@ -1,4 +1,4 @@
-
+import AlgebraicGraphClass.Graph.Aux
 
 object AlgebraicGraphClass {
   case class Relation[T](domain: Set[T], relation: Set[(T, T)])
@@ -39,34 +39,36 @@ object AlgebraicGraphClass {
     }
   }
 
+
+
   trait GraphFunctor[A] {
-    type Graph
-    type Vertex
-    def gfor(f: A => Vertex)(implicit g: Graph.Aux[Graph, A]): Graph
+    def gfor[G, V](f: A => V)(implicit g: Graph.Aux[G, V]): G
   }
 
-  object GraphFunctor {
-    type Aux[A, G, V] = GraphFunctor[A] { type Graph = G; type Vertex = V }
-
-    def apply[A, G, V](ff: (A => V) => G): Aux[A, G, V] =
+  implicit def graphFunctorGraph[A]: Graph.Aux[GraphFunctor[A], A] =
+    Graph.instance(
       new GraphFunctor[A] {
-        type Graph = G
-        type Vertex = V
-        def gfor(f: A => V)(implicit g: Graph.Aux[G, A]): G = ff(f)
-      }
-  }
-
-  //  implicit def graphFunctorGraph[A, G, V](implicit g: Graph.Aux[G, V]): Graph.Aux[GraphFunctor.Aux[A, G, V], A] = Graph.instance(
-  //    GraphFunctor(_ => g.empty),
-  //    x => GraphFunctor(f => g.vertex(f(x))),
-  //    ???, ???
-  //  )
-  //
-  //  implicit def graphFunctor[A, G, V](implicit g: Graph.Aux[G, V]): GraphFunctor.Aux[A, G, V] = ???
+        def gfor[G, V](f: A => V)(implicit g: Aux[G, V]): G = g.empty
+      },
+      v =>
+        new GraphFunctor[A] {
+          def gfor[G, V](f: A => V)(implicit g: Aux[G, V]): G = g.vertex(f(v))
+        },
+      (x, y) =>
+        new GraphFunctor[A] {
+          def gfor[G, V](f: A => V)(implicit g: Aux[G, V]): G =
+            g.overlay(x.gfor(f)(g), y.gfor(f)(g))
+        },
+      (x, y) =>
+        new GraphFunctor[A] {
+          def gfor[G, V](f: A => V)(implicit g: Aux[G, V]): G =
+            g.connect(x.gfor(f)(g), y.gfor(f)(g))
+        }
+    )
 
   implicit def relationGraph[V]: Graph.Aux[Relation[V], V] = Graph.instance(
     Relation(Set.empty, Set.empty),
-    (v) => Relation(Set(v), Set.empty),
+    v => Relation(Set(v), Set.empty),
     (x, y) => Relation(x.domain union y.domain, x.relation union y.relation),
     (x, y) =>
       Relation(
@@ -77,18 +79,7 @@ object AlgebraicGraphClass {
       )
   )
 
-  // implicit def graphFunctorGraph[V]: Graph.Aux[GraphFunctor[V], V]
-
   def clique[G, V](xs: List[V])(implicit g: Graph.Aux[G, V]): G =
     xs.map(g.vertex).foldRight(g.empty)(g.connect)
 
-  //  def gmap[A, G, V](f: A => V, gf: GraphFunctor.Aux[A, G, V])(implicit g: Graph.Aux[G, V]): G = gf.gfor(f)
-
-  val g: Relation[Int] = clique(List(1, 2, 3))
-
-  //  val gg: GraphFunctor.Aux[Int, Relation[Int], String] = clique(List(1,2,3))
-  //
-  //  val fg = gg.gfor(x => x.toString)
-  //  val fg = gmap[Int, Relation[String], String](_.toString, gg)
-  val x = 1
 }
