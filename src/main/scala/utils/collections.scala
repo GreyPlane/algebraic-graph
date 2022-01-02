@@ -1,14 +1,17 @@
+package utils
+
 import cats.kernel.Order
+import cats.implicits._
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable
-import cats.implicits._
 
-object collectionExts {
-  implicit class EnrichList[T](val x: List[T]) {
+trait collections {
+
+  extension [T](x: List[T]) {
     def groupBy_[K](
-                     f: T => K
-                   )(implicit order: Order[K]): TreeMap[K, List[T]] = {
+        f: T => K
+    )(implicit order: Order[K]): TreeMap[K, List[T]] = {
       val m = mutable.TreeMap.empty[K, mutable.Builder[T, List[T]]]
       val it = x.iterator
       while (it.hasNext) {
@@ -35,9 +38,11 @@ object collectionExts {
         val key = i / step
         val bldr = m.getOrElseUpdate(key, List.newBuilder[T])
         bldr += elem
-        if (lag != 0 && i != 0 && (i + 1) % totalPartition == 0 && i != x.length - 1) {
+        if (
+          lag != 0 && i != 0 && (i + 1) % totalPartition == 0 && i != x.length - 1
+        ) {
           for (j <- Range(i, i + lag)) {
-            val extraElem = x(j+1)
+            val extraElem = x(j + 1)
             bldr += extraElem
           }
         }
@@ -52,9 +57,9 @@ object collectionExts {
     }
   }
 
-  implicit class EnrichTreeMap[K, V](val x: TreeMap[K, V]) {
-    def unionWith(y: TreeMap[K, V], f: (V, V) => V)(implicit
-                                                    orderK: Order[K]
+  extension [K, V](x: TreeMap[K, V]) {
+    def unionWith(y: TreeMap[K, V], f: (V, V) => V)(using
+        Order[K]
     ): TreeMap[K, V] = (List.from(x) ++ List.from(y)).groupBy_(_._1).map {
       case (k, kv) => (k, kv.map(_._2).reduce(f))
     }

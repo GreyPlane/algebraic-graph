@@ -1,6 +1,6 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "2.13.7"
+ThisBuild / scalaVersion := "3.1.0"
 //
 //lazy val plugin = project.in(file("plugin"))
 //  .settings(crossVersionSharedSources)
@@ -30,7 +30,9 @@ lazy val root = (project in file("."))
 
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "2.7.0",
-  "org.typelevel" %% "kittens" % "2.3.2",
-  "com.chuusai" %% "shapeless" % "2.3.7",
+  // https://mvnrepository.com/artifact/org.typelevel/kittens
+  "org.typelevel" %% "kittens" % "3.0.0-M1",
+//  "org.typelevel" %% "kittens" % "2.3.2",
+//  "com.chuusai" %% "shapeless" % "2.3.7",
   "org.scalatest" %% "scalatest" % "3.2.9" % Test,
 )

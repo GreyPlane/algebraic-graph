@@ -2,18 +2,11 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import cats._
 import cats.implicits._
-import cats.derived.semiauto
+import cats.derived.semiauto.*
 
 import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable
-
-class DefaultDict[K, V] {
-  private val map: mutable.Map[K, V] = mutable.Map.empty[K, V]
-  def get(key: K): Either[V, DefaultDict[K, V]] = {
-    map.get(key).map(Left.apply).getOrElse(Right(this))
-  }
-}
 
 case class Branch(toStep: Int, criteria: Int)
 case class StepLike(name: String, stepType: String, criteria: Int) {
@@ -27,15 +20,12 @@ case class Strategy(name: String, criteria: List[Int], action: String)
 
 class Test extends AnyWordSpecLike with Matchers {
 
-  import AlgebraicGraph._
   import AlgebraicGraph.Graph._
-  import AlgebraicGraph.implicits._
-  import AlgebraicGraph.syntax._
-  import shapeless.newtype._
+  import AlgebraicGraph.*
 
-  implicit val branchEq: Order[Branch] = semiauto.order
-  implicit val stepLikeEq: Order[StepLike] = semiauto.order
-  implicit val stepEq: Order[Step] = semiauto.order
+  given branchEq: Order[Branch] = Order.derived
+  given stepLikeEq: Order[StepLike] = Order.derived
+  given stepEq: Order[Step] = Order.derived
 
   def transform(strategies: List[Strategy]): (StepLike, Graph[StepLike]) =
     strategies match {
@@ -116,9 +106,15 @@ class Test extends AnyWordSpecLike with Matchers {
 
     val indexedGraph = graph.map(s => s -> vs(s))
 
-    val m = path(Range.inclusive(1, 9).toList) + path(List(9, 1)) + star(5, List(2, 4, 6, 8))
+    val m = path(Range.inclusive(1, 9).toList) + path(List(9, 1)) + star(
+      5,
+      List(2, 4, 6, 8)
+    )
+
+    import AdjacencyMap.extensions._
+
     val adm = m.toAdjacencyMap
-    val steps = indexedGraph.toAdjacencyMap.adjacencyMap.map {
+    val steps = indexedGraph.toAdjacencyMap.unwarp.map {
       case ((StepLike(name, stepType, criteria), i), branches) =>
         Step(
           i,
@@ -138,22 +134,18 @@ class Test extends AnyWordSpecLike with Matchers {
     val ges = g.edgeList
     val s = g.show
     val ad = g.toAdjacencyMap
-    1 shouldBe 1
-  }
-  "ad" in {
-    type Matrix = List[List[Option[Int]]]
-
-    def isAdjacency(from: Int, to: Int): Boolean = {
-      ???
-    }
-
-    def move(matrix: Matrix, from: Int, to: Int): Option[Matrix] = {
-      if (isAdjacency(from, to)) {
-        matrix.lift
-        ???
-      } else None
-    }
 
     1 shouldBe 1
   }
+
+  "graph type class" in {
+    import AlgebraicGraphClass._
+
+    val starG: Relation[Int] = star(1, List(2, 3, 4, 5))
+    val starSG: Relation[String] =
+      star(1, List(2, 3, 4, 5)).gfor(_.toString + "a")
+
+    starG shouldBe starG
+  }
+
 }

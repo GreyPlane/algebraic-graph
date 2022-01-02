@@ -1,16 +1,15 @@
-
+import AlgebraicGraph.*
 trait ToGraph[T] {
   type Vertex
 
-  def toGraph(t: T): AlgebraicGraph.Graph[Vertex]
-  //  = AlgGraphHK.foldg(Empty, Vertex[V], Overlay[V], Connect[V])(g)
+  def toGraph(t: T): Graph[Vertex]
 
-  //  foldg :: r -> (ToVertex t -> r) -> (r -> r -> r) -> (r -> r -> r) -> t -> r
-  def foldg[R](e: R, v: Vertex => R, o: (R, R) => R, c: (R, R) => R)(t: T) = AlgebraicGraph.foldg(e, v, o, c)(toGraph(t))
+  def foldg[R](e: R, v: Vertex => R, o: (R, R) => R, c: (R, R) => R)(t: T) =
+    toGraph(t).foldg(e, v, o, c)
 }
 
 object ToGraph {
   type Aux[T, V] = ToGraph[T] { type Vertex = V }
 
-  def apply[T, V](implicit tg: ToGraph.Aux[T, V]): Aux[T, V] = tg
+  def apply[T, V](using tg: ToGraph.Aux[T, V]): Aux[T, V] = tg
 }
