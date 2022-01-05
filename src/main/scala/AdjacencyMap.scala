@@ -9,7 +9,7 @@ object AdjacencyMap {
 
   opaque type AdjacencyMap[A] = TreeMap[A, TreeSet[A]]
 
-  def apply[A](v: TreeMap[A, TreeSet[A]]): AdjacencyMap[A] = v
+  def apply[A]: AdjacencyMap[A] => AdjacencyMap[A] = identity
 
   extension [A](m: AdjacencyMap[A])(using Order[A]) {
 
@@ -77,13 +77,11 @@ object AdjacencyMap {
 
   given adjacencyMapOrder[A](using Order[A]): Order[AdjacencyMap[A]] =
     import extensions._
-    new Order[AdjacencyMap[A]] {
-      def compare(x: AdjacencyMap[A], y: AdjacencyMap[A]): Int = List(
-        x.vertexCount compare y.vertexCount,
-        x.vertexSet.toSet.tryCompare(y.vertexSet.toSet).get,
-        x.edgeCount compare y.edgeCount,
-        x.edgeSet.toSet.tryCompare(y.edgeSet).get
-      ).combineAll
-    }
+    (x: AdjacencyMap[A], y: AdjacencyMap[A]) => List(
+      x.vertexCount compare y.vertexCount,
+      x.vertexSet.toSet.tryCompare(y.vertexSet.toSet).get,
+      x.edgeCount compare y.edgeCount,
+      x.edgeSet.toSet.tryCompare(y.edgeSet).get
+    ).combineAll
 
 }

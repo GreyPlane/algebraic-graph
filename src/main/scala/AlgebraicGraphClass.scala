@@ -29,7 +29,7 @@ object AlgebraicGraphClass {
         f3: (G, G) => G
     ): Aux[G, V] = new Graph[G] {
       type Vertex = V
-      val empty = e
+      val empty: G = e
 
       def vertex(vertex: V): G = f1(vertex)
 
@@ -62,14 +62,14 @@ object AlgebraicGraphClass {
   given relationGraph[V](using Order[V]): Graph.Aux[Relation[V], V] =
     Graph.apply(
       Relation(TreeSet.empty, TreeSet.empty),
-      (v) => Relation(TreeSet(v), TreeSet.empty),
+      v => Relation(TreeSet(v), TreeSet.empty),
       (x, y) => Relation(x.domain union y.domain, x.relation union y.relation),
       (x, y) =>
         Relation(
           x.domain union y.domain,
           x.relation union y.relation union (for {
             a <- x.domain; b <- y.domain
-          } yield ((a, b)))
+          } yield (a, b))
         )
     )
 
