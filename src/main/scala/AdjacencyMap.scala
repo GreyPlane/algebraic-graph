@@ -8,7 +8,6 @@ import cats.data.NonEmptyList
 import scala.util.control.ControlThrowable
 import scala.util.Try
 import cats.kernel.PartialOrder
-import cats.kernel.instances.SetPartialOrder
 
 object AdjacencyMap {
 
