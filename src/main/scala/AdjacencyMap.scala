@@ -4,6 +4,11 @@ import cats.kernel.Order
 import scala.collection.immutable.{TreeMap, TreeSet}
 import utils.*
 import cats.Functor
+import cats.data.NonEmptyList
+import scala.util.control.ControlThrowable
+import scala.util.Try
+import cats.kernel.PartialOrder
+import cats.kernel.instances.SetPartialOrder
 
 object AdjacencyMap {
 
@@ -26,6 +31,92 @@ object AdjacencyMap {
       m.keySet
     def edgeSet: TreeSet[(A, A)] =
       TreeSet.from(m.edgeList)
+
+    def paths(root: A): List[List[A]] =
+      m.getOrElse(root, TreeSet.empty[A]).toList match {
+        case Nil => List(List(root))
+        case es  => es.flatMap(m.paths(_).map(root :: _))
+      }
+
+    def postSet(x: A): TreeSet[A] = {
+      m.getOrElse(x, TreeSet.empty)
+    }
+
+    def topoSort = {
+      case class SortState[A](
+          parent: collection.mutable.TreeMap[A, A],
+          entry: collection.mutable.TreeMap[A, NodeState],
+          order: collection.mutable.ListBuffer[A]
+      )
+      enum NodeState {
+        case Exited
+        case Entered
+      }
+      type Cycle[A] = NonEmptyList[A]
+
+      case class BreakCycle[A](x: Cycle[A]) extends ControlThrowable
+
+      import NodeState._
+      val nodeState = SortState[A](
+        collection.mutable.TreeMap.empty,
+        collection.mutable.TreeMap.empty,
+        collection.mutable.ListBuffer.empty
+      )
+      val vertices = m.keySet.toList.reverse
+      def adjacent(x: A) = m.postSet(x).toList.reverse
+      def exit(v: A) = {
+        nodeState.entry.updateWith(v)(_.map {
+          case Entered =>
+            Exited
+          case Exited =>
+            throw new IllegalArgumentException("wrong state")
+        })
+        nodeState.order.prepend(v)
+      }
+      def retrace(
+          curr: A,
+          head: A,
+          parent: collection.mutable.TreeMap[A, A]
+      ) = {
+        def aux(xs: NonEmptyList[A]): NonEmptyList[A] = {
+          if (xs.head == head) xs
+          else aux(parent.get(xs.head).map(c => xs.prepend(c)).get)
+        }
+        aux(NonEmptyList.of(curr))
+      }
+
+      def dfs(x: A): Unit = adjacent(x).foreach(y =>
+        nodeState.entry.get(y) match {
+          case None => {
+            nodeState.parent.update(y, x)
+            nodeState.entry.update(y, Entered)
+            dfs(y)
+            exit(y)
+          }
+          case Some(Exited) => ()
+          case Some(Entered) => {
+            val e = BreakCycle(retrace(x, y, nodeState.parent))
+            throw e
+          }
+        }
+      )
+
+      def dfsRoot(x: A): Unit = nodeState.entry.get(x) match {
+        case None => {
+          nodeState.entry.update(x, Entered)
+          dfs(x)
+          exit(x)
+        }
+        case _ => ()
+      }
+      try {
+        vertices.foreach(dfsRoot)
+        Right(nodeState.order.toList)
+      } catch {
+        case e: BreakCycle[A] =>
+          Left(e.x)
+      }
+    }
 
   }
 
@@ -72,16 +163,27 @@ object AdjacencyMap {
         else TreeMap(x -> TreeSet(y), y -> TreeSet.empty[A])
       )
     }
-
   }
 
-  given adjacencyMapOrder[A](using Order[A]): Order[AdjacencyMap[A]] =
+  given adjacencyMapOrder[A](using Order[A]): PartialOrder[AdjacencyMap[A]] =
     import extensions._
-    (x: AdjacencyMap[A], y: AdjacencyMap[A]) => List(
-      x.vertexCount compare y.vertexCount,
-      x.vertexSet.toSet.tryCompare(y.vertexSet.toSet).get,
-      x.edgeCount compare y.edgeCount,
-      x.edgeSet.toSet.tryCompare(y.edgeSet).get
-    ).combineAll
+    (x: AdjacencyMap[A], y: AdjacencyMap[A]) =>
+      val what = Set(1, 2).tryCompare(Set(2))
+      val s = x.vertexSet.toSet
+        .tryCompare(y.vertexSet.toSet)
+        .map(_.toDouble)
+        .getOrElse(Double.NaN)
+      List(
+        (x.vertexCount compare y.vertexCount).toDouble,
+        x.vertexSet.toSet
+          .tryCompare(y.vertexSet.toSet)
+          .map(_.toDouble)
+          .getOrElse(Double.NaN),
+        (x.edgeCount compare y.edgeCount).toDouble,
+        x.edgeSet.toSet
+          .tryCompare(y.edgeSet.toSet)
+          .map(_.toDouble)
+          .getOrElse(Double.NaN)
+      ).combineAll
 
 }
