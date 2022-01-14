@@ -5,9 +5,12 @@ import scala.collection.immutable.{TreeMap, TreeSet}
 import utils.*
 import cats.Functor
 import cats.data.NonEmptyList
+
 import scala.util.control.ControlThrowable
 import scala.util.Try
 import cats.kernel.PartialOrder
+
+import scala.annotation.tailrec
 
 object AdjacencyMap {
 
@@ -77,6 +80,7 @@ object AdjacencyMap {
           head: A,
           parent: collection.mutable.TreeMap[A, A]
       ) = {
+        @tailrec
         def aux(xs: NonEmptyList[A]): NonEmptyList[A] = {
           if (xs.head == head) xs
           else aux(parent.get(xs.head).map(c => xs.prepend(c)).get)
@@ -167,11 +171,6 @@ object AdjacencyMap {
   given adjacencyMapOrder[A](using Order[A]): PartialOrder[AdjacencyMap[A]] =
     import extensions._
     (x: AdjacencyMap[A], y: AdjacencyMap[A]) =>
-      val what = Set(1, 2).tryCompare(Set(2))
-      val s = x.vertexSet.toSet
-        .tryCompare(y.vertexSet.toSet)
-        .map(_.toDouble)
-        .getOrElse(Double.NaN)
       List(
         (x.vertexCount compare y.vertexCount).toDouble,
         x.vertexSet.toSet
