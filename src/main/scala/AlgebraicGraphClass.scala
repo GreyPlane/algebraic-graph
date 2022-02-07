@@ -45,7 +45,7 @@ object AlgebraicGraphClass {
   }
 
   extension [A](x: GraphFunctor[A]) {
-    def gfor[G, V](f: A => V)(using Graph.Aux[G, V]): G = x(f)
+    def gmap[G, V](f: A => V)(using Graph.Aux[G, V]): G = x(f)
   }
 
   given [A]: Graph.Aux[GraphFunctor[A], A] = Graph.apply(
@@ -53,10 +53,10 @@ object AlgebraicGraphClass {
     v => [G, V] => (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.vertex(f(v)),
     (x: GraphFunctor[A], y: GraphFunctor[A]) =>
       [G, V] =>
-        (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.overlay(x.gfor(f), y.gfor(f)),
+        (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.overlay(x.gmap(f), y.gmap(f)),
     (x: GraphFunctor[A], y: GraphFunctor[A]) =>
       [G, V] =>
-        (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.connect(x.gfor(f), y.gfor(f)),
+        (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.connect(x.gmap(f), y.gmap(f)),
   )
 
   given relationGraph[V](using Order[V]): Graph.Aux[Relation[V], V] =

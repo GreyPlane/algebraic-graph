@@ -143,7 +143,7 @@ class Test extends AnyWordSpecLike with Matchers {
 
     val starG: Relation[Int] = star(1, List(2, 3, 4, 5))
     val starSG: Relation[String] =
-      star(1, List(2, 3, 4, 5)).gfor(_.toString + "a")
+      star(1, List(2, 3, 4, 5)).gmap(_.toString + "a")
 
     starG shouldBe starG
   }
