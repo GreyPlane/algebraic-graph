@@ -63,7 +63,7 @@ object AlgebraicGraph {
   }
 
   object Graph {
-    import utils._
+    import utils.*
 
     given graphMonad: Monad[Graph] = new Monad[Graph] {
       def flatMap[A, B](fa: Graph[A])(f: A => Graph[B]): Graph[B] =
