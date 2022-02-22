@@ -138,14 +138,15 @@ class Test extends AnyWordSpecLike with Matchers {
     1 shouldBe 1
   }
 
-  "graph type class" in {
+  "graph type class should work" in {
     import AlgebraicGraphClass._
 
-    val starG: Relation[Int] = star(1, List(2, 3, 4, 5))
-    val starSG: Relation[String] =
-      star(1, List(2, 3, 4, 5)).gmap(_.toString + "a")
+    val es: Relation[String] = induce[GraphFunctor[Int], Int](
+      x => x < 3,
+      clique(Range.inclusive(0, 10).toList)
+    ).gmap(_.toString)
 
-    starG shouldBe starG
+    es.relation.toList shouldBe List("0" -> "1", "0" -> "2", "1" -> "2")
   }
 
 }

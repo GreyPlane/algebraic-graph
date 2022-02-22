@@ -41,14 +41,13 @@ object AlgebraicGraphClass {
 
   opaque type GraphFunctor[A] = [G, V] => (f: A => V) => Graph.Aux[G, V] ?=> G
   object GraphFunctor {
-    def apply[A](f: GraphFunctor[A]): GraphFunctor[A] = f
+    def apply[A] = identity[GraphFunctor[A]]
   }
 
-  extension [A](x: GraphFunctor[A]) {
+  extension [A](x: GraphFunctor[A])
     def gmap[G, V](f: A => V)(using Graph.Aux[G, V]): G = x(f)
-  }
 
-  given [A]: Graph.Aux[GraphFunctor[A], A] = Graph.apply(
+  given [A]: Graph.Aux[GraphFunctor[A], A] = Graph(
     [G, V] => (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.empty,
     v => [G, V] => (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.vertex(f(v)),
     (x: GraphFunctor[A], y: GraphFunctor[A]) =>
@@ -59,8 +58,27 @@ object AlgebraicGraphClass {
         (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.connect(x.gmap(f), y.gmap(f)),
   )
 
+  opaque type GraphMonad[A] = [G, V] => (f: A => G) => Graph.Aux[G, V] ?=> G
+  object GraphMonad {
+    def apply[A] = identity[GraphMonad[A]]
+  }
+
+  extension [A](x: GraphMonad[A])
+    def bind[G, V](f: A => G)(using Graph.Aux[G, V]): G = x(f)
+
+  given [A]: Graph.Aux[GraphMonad[A], A] = Graph(
+    [G, V] => (f: A => G) => (g: Graph.Aux[G, V]) ?=> g.empty,
+    v => [G, V] => (f: A => G) => (g: Graph.Aux[G, V]) ?=> f(v),
+    (x: GraphMonad[A], y: GraphMonad[A]) =>
+      [G, V] =>
+        (f: A => G) => (g: Graph.Aux[G, V]) ?=> g.overlay(x.bind(f), y.bind(f)),
+    (x: GraphMonad[A], y: GraphMonad[A]) =>
+      [G, V] =>
+        (f: A => G) => (g: Graph.Aux[G, V]) ?=> g.connect(x.bind(f), y.bind(f))
+  )
+
   given relationGraph[V](using Order[V]): Graph.Aux[Relation[V], V] =
-    Graph.apply(
+    Graph(
       Relation(TreeSet.empty, TreeSet.empty),
       v => Relation(TreeSet(v), TreeSet.empty),
       (x, y) => Relation(x.domain union y.domain, x.relation union y.relation),
@@ -107,5 +125,9 @@ object AlgebraicGraphClass {
 
   def star[G, V](v: V, vs: List[V])(using g: Graph.Aux[G, V]): G =
     g.connect(g.vertex(v), vertices(vs))
+
+  def induce[G, V](p: V => Boolean, gm: GraphMonad[V])(using
+      g: Graph.Aux[G, V]
+  ): G = gm.bind[G, V](x => if (p(x)) g.vertex(x) else g.empty)
 
 }
