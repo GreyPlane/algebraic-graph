@@ -4,6 +4,8 @@ import cats.Eq
 import cats.implicits._
 import scala.collection.immutable.TreeSet
 
+
+//TODO fix all opaque types' apply
 object AlgebraicGraphClass {
   trait Graph[G] {
 
@@ -39,7 +41,28 @@ object AlgebraicGraphClass {
     }
   }
 
-  opaque type GraphFunctor[A] = [G, V] => (f: A => V) => Graph.Aux[G, V] ?=> G
+  // why there has to be an empty call
+  opaque type Transpose[V] = [G] => () => Graph.Aux[G, V] ?=> G
+  object Transpose {
+    def apply[V](g: [G] => () => Graph.Aux[G, V] ?=> G) = g
+  }
+
+  extension [V](x: Transpose[V])
+    def transpose[G](using Graph.Aux[G, V]): G = x()
+
+  given [V]: Graph.Aux[Transpose[V], V] =
+    Graph(
+      [G] => () => (g: Graph.Aux[G, V]) ?=> g.empty,
+      x => [G] => () => (g: Graph.Aux[G, V]) ?=> g.vertex(x),
+      (x, y) =>
+        [G] =>
+          () => (g: Graph.Aux[G, V]) ?=> g.overlay(x.transpose, y.transpose),
+      (x, y) =>
+        [G] =>
+          () => (g: Graph.Aux[G, V]) ?=> g.connect(y.transpose, x.transpose)
+    )
+
+  opaque type GraphFunctor[A] = [G, V] => (A => V) => Graph.Aux[G, V] ?=> G
   object GraphFunctor {
     def apply[A] = identity[GraphFunctor[A]]
   }
@@ -48,7 +71,7 @@ object AlgebraicGraphClass {
     def gmap[G, V](f: A => V)(using Graph.Aux[G, V]): G = x(f)
 
   given [A]: Graph.Aux[GraphFunctor[A], A] = Graph(
-    [G, V] => (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.empty,
+    [G, V] => (_: A => V) => (g: Graph.Aux[G, V]) ?=> g.empty,
     v => [G, V] => (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.vertex(f(v)),
     (x: GraphFunctor[A], y: GraphFunctor[A]) =>
       [G, V] =>
@@ -58,7 +81,7 @@ object AlgebraicGraphClass {
         (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.connect(x.gmap(f), y.gmap(f)),
   )
 
-  opaque type GraphMonad[A] = [G, V] => (f: A => G) => Graph.Aux[G, V] ?=> G
+  opaque type GraphMonad[A] = [G, V] => (A => G) => Graph.Aux[G, V] ?=> G
   object GraphMonad {
     def apply[A] = identity[GraphMonad[A]]
   }
@@ -67,7 +90,7 @@ object AlgebraicGraphClass {
     def bind[G, V](f: A => G)(using Graph.Aux[G, V]): G = x(f)
 
   given [A]: Graph.Aux[GraphMonad[A], A] = Graph(
-    [G, V] => (f: A => G) => (g: Graph.Aux[G, V]) ?=> g.empty,
+    [G, V] => (_: A => G) => (g: Graph.Aux[G, V]) ?=> g.empty,
     v => [G, V] => (f: A => G) => (g: Graph.Aux[G, V]) ?=> f(v),
     (x: GraphMonad[A], y: GraphMonad[A]) =>
       [G, V] =>
@@ -122,6 +145,11 @@ object AlgebraicGraphClass {
   def path[G, V](vs: List[V])(using g: Graph.Aux[G, V]): G = edges(
     vs.zip(vs.tail)
   )
+
+  def circuit[G, V](vs: List[V])(using g: Graph.Aux[G, V]): G = vs match {
+    case Nil           => g.empty
+    case vs @ v :: _ => path(vs :+ v)
+  }
 
   def star[G, V](v: V, vs: List[V])(using g: Graph.Aux[G, V]): G =
     g.connect(g.vertex(v), vertices(vs))

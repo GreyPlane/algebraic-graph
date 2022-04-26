@@ -146,6 +146,12 @@ class Test extends AnyWordSpecLike with Matchers {
       clique(Range.inclusive(0, 10).toList)
     ).gmap(_.toString)
 
+    val transposed: Relation[String] = induce[GraphFunctor[Int], Int](
+      x => x < 3,
+      clique(Range.inclusive(0, 10).toList)
+    ).gmap[Transpose[String], String](_.toString).transpose
+
+    transposed.relation.toList shouldBe List("1" -> "0", "2" -> "0", "2" -> "1")
     es.relation.toList shouldBe List("0" -> "1", "0" -> "2", "1" -> "2")
   }
 
