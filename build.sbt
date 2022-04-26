@@ -27,12 +27,8 @@ lazy val root = (project in file("."))
     scalacOptions := scalacOptionsAll
   )
 
-
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "2.7.0",
-  // https://mvnrepository.com/artifact/org.typelevel/kittens
   "org.typelevel" %% "kittens" % "3.0.0-M1",
-//  "org.typelevel" %% "kittens" % "2.3.2",
-//  "com.chuusai" %% "shapeless" % "2.3.7",
-  "org.scalatest" %% "scalatest" % "3.2.9" % Test,
+  "org.scalatest" %% "scalatest" % "3.2.11" % Test
 )
