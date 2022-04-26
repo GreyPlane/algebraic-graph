@@ -1,5 +1,4 @@
-import cats.Monad
-import cats.Show
+import cats.{Monad, Monoid, Show}
 import cats.kernel.Order
 import cats.implicits.*
 
@@ -65,7 +64,12 @@ object AlgebraicGraph {
   object Graph {
     import utils.*
 
-    given graphMonad: Monad[Graph] = new Monad[Graph] {
+    given [A]: Monoid[Graph[A]] = new Monoid[Graph[A]] {
+      def empty: Graph[A] = Graph.empty
+      def combine(x: Graph[A], y: Graph[A]): Graph[A] = overlay(x, y)
+    }
+
+    given Monad[Graph] = new Monad[Graph] {
       def flatMap[A, B](fa: Graph[A])(f: A => Graph[B]): Graph[B] =
         fa.fold(Graph.empty[B], f, Overlay[B], Connect[B])
 
@@ -103,18 +107,16 @@ object AlgebraicGraph {
       def pure[A](x: A): Graph[A] = Vertex(x)
     }
 
-    given graphShow[A]: Show[Graph[A]] = new Show[Graph[A]] {
-      def show(t: Graph[A]): String = {
-        def go(p: Boolean, graph: Graph[A]): String = graph match {
-          case Empty              => "empty"
-          case Vertex(x)          => x.toString
-          case Overlay(x, y) if p => "(" + go(false, graph) + ")"
-          case Overlay(x, y)      => go(false, x) + " + " + go(false, y)
-          case Connect(x, y)      => go(true, x) + " * " + go(true, y)
-        }
-
-        go(false, t);
+    given [A]: Show[Graph[A]] = (t: Graph[A]) => {
+      def go(p: Boolean, graph: Graph[A]): String = graph match {
+        case Empty              => "empty"
+        case Vertex(x)          => x.toString
+        case Overlay(x, y) if p => "(" + go(false, graph) + ")"
+        case Overlay(x, y)      => go(false, x) + " + " + go(false, y)
+        case Connect(x, y)      => go(true, x) + " * " + go(true, y)
       }
+
+      go(false, t);
     }
 
     def empty[A]: Graph[A] = Empty
