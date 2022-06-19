@@ -1,11 +1,10 @@
-import Relation._
+import Relation.*
 import cats.Order
 import cats.Eq
-import cats.implicits._
+import cats.implicits.*
+
 import scala.collection.immutable.TreeSet
 
-
-//TODO fix all opaque types' apply
 object AlgebraicGraphClass {
   trait Graph[G] {
 
@@ -43,9 +42,6 @@ object AlgebraicGraphClass {
 
   // why there has to be an empty call
   opaque type Transpose[V] = [G] => () => Graph.Aux[G, V] ?=> G
-  object Transpose {
-    def apply[V](g: [G] => () => Graph.Aux[G, V] ?=> G) = g
-  }
 
   extension [V](x: Transpose[V])
     def transpose[G](using Graph.Aux[G, V]): G = x()
@@ -63,9 +59,6 @@ object AlgebraicGraphClass {
     )
 
   opaque type GraphFunctor[A] = [G, V] => (A => V) => Graph.Aux[G, V] ?=> G
-  object GraphFunctor {
-    def apply[A] = identity[GraphFunctor[A]]
-  }
 
   extension [A](x: GraphFunctor[A])
     def gmap[G, V](f: A => V)(using Graph.Aux[G, V]): G = x(f)
@@ -82,9 +75,6 @@ object AlgebraicGraphClass {
   )
 
   opaque type GraphMonad[A] = [G, V] => (A => G) => Graph.Aux[G, V] ?=> G
-  object GraphMonad {
-    def apply[A] = identity[GraphMonad[A]]
-  }
 
   extension [A](x: GraphMonad[A])
     def bind[G, V](f: A => G)(using Graph.Aux[G, V]): G = x(f)
@@ -147,7 +137,7 @@ object AlgebraicGraphClass {
   )
 
   def circuit[G, V](vs: List[V])(using g: Graph.Aux[G, V]): G = vs match {
-    case Nil           => g.empty
+    case Nil         => g.empty
     case vs @ v :: _ => path(vs :+ v)
   }
 
