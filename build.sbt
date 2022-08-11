@@ -1,17 +1,6 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "3.1.0"
-//
-//lazy val plugin = project.in(file("plugin"))
-//  .settings(crossVersionSharedSources)
-//  .settings(publishSettings)
-//  .settings(
-//    name := "shapeless-plugin",
-//    moduleName := "shapeless-plugin",
-//    sbtPlugin := true,
-//    scalaVersion := Scala213,
-//    crossScalaVersions := Seq(Scala213, Scala212)
-//  )
+ThisBuild / scalaVersion := "3.1.3"
 
 val scalacOptionsAll = List(
   "-feature",
@@ -28,7 +17,7 @@ lazy val root = (project in file("."))
   )
 
 libraryDependencies ++= Seq(
-  "org.typelevel" %% "cats-core" % "2.7.0",
+  "org.typelevel" %% "cats-core" % "2.8.0",
   "org.typelevel" %% "kittens" % "3.0.0-M1",
-  "org.scalatest" %% "scalatest" % "3.2.11" % Test
+  "org.scalatest" %% "scalatest" % "3.2.12" % Test
 )
