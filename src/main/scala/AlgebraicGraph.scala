@@ -8,9 +8,9 @@ object AlgebraicGraph {
 
   enum Graph[+A] {
     case Empty extends Graph[Nothing]
-    case Vertex[A](a: A) extends Graph[A]
-    case Overlay[A](x: Graph[A], y: Graph[A]) extends Graph[A]
-    case Connect[A](x: Graph[A], y: Graph[A]) extends Graph[A]
+    case Vertex(a: A) extends Graph[A]
+    case Overlay(x: Graph[A], y: Graph[A]) extends Graph[A]
+    case Connect(x: Graph[A], y: Graph[A]) extends Graph[A]
 
     def foldg[B](e: B, v: A => B, o: (B, B) => B, c: (B, B) => B): B =
       this match {
