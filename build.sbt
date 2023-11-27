@@ -1,6 +1,6 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "3.1.3"
+ThisBuild / scalaVersion := "3.3.1"
 
 val scalacOptionsAll = List(
   "-feature",
@@ -17,7 +17,7 @@ lazy val root = (project in file("."))
   )
 
 libraryDependencies ++= Seq(
-  "org.typelevel" %% "cats-core" % "2.8.0",
-  "org.typelevel" %% "kittens" % "3.0.0-M1",
-  "org.scalatest" %% "scalatest" % "3.2.12" % Test
+  "org.typelevel" %% "cats-core" % "2.9.0",
+  "org.typelevel" %% "kittens" % "3.1.0" % Test,
+  "org.scalatest" %% "scalatest" % "3.2.15" % Test
 )
