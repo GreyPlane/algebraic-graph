@@ -1,4 +1,6 @@
-import AlgebraicGraph.*
+package ag
+
+import ag.AlgebraicGraph.*
 trait ToGraph[T] {
   type Vertex
 

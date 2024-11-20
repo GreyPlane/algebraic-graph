@@ -1,31 +1,29 @@
+package ag
+
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import cats._
 import cats.implicits._
-import cats.derived.semiauto.*
+import cats.derived.*
 
 import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable
 
-case class Branch(toStep: Int, criteria: Int)
-case class StepLike(name: String, stepType: String, criteria: Int) {
+case class Branch(toStep: Int, criteria: Int) derives Eq, Order
+case class StepLike(name: String, stepType: String, criteria: Int) derives Eq, Order {
   override def toString() = {
     name
   }
 }
-case class Step(id: Int, stepType: String, branch: List[Branch])
+case class Step(id: Int, stepType: String, branch: List[Branch]) derives Eq, Order
 
-case class Strategy(name: String, criteria: List[Int], action: String)
+case class Strategy(name: String, criteria: List[Int], action: String) derives Eq, Order
 
 class Test extends AnyWordSpecLike with Matchers {
 
   import AlgebraicGraph.Graph._
   import AlgebraicGraph.*
-
-  given branchEq: Order[Branch] = Order.derived
-  given stepLikeEq: Order[StepLike] = Order.derived
-  given stepEq: Order[Step] = Order.derived
 
   def transform(strategies: List[Strategy]): (StepLike, Graph[StepLike]) =
     strategies match {
@@ -111,19 +109,18 @@ class Test extends AnyWordSpecLike with Matchers {
       List(2, 4, 6, 8)
     )
 
-    import AdjacencyMap.extensions._
+    import AdjacencyMaps.extensions._
+    import AdjacencyMaps._
 
     val adm = m.toAdjacencyMap
-    val steps = indexedGraph.toAdjacencyMap.unwarp.map {
-      case ((StepLike(name, stepType, criteria), i), branches) =>
-        Step(
-          i,
-          stepType,
-          branch = branches.map {
-            case (StepLike(name, stepType, criteria), i) =>
-              Branch(i, criteria)
-          }.toList
-        )
+    val steps = indexedGraph.toAdjacencyMap.underlying.map { case ((StepLike(name, stepType, criteria), i), branches) =>
+      Step(
+        i,
+        stepType,
+        branch = branches.map { case (StepLike(name, stepType, criteria), i) =>
+          Branch(i, criteria)
+        }.toList
+      )
     }.toList
 
     val g = Graph

@@ -1,7 +1,7 @@
-package utils
+package ag.utils
 
+import cats.implicits.*
 import cats.kernel.Order
-import cats.implicits._
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable

@@ -1,16 +1,15 @@
-import cats.implicits.*
-import cats.kernel.Order
+package ag
 
-import scala.collection.immutable.{TreeMap, TreeSet}
-import utils.*
+import ag.utils.*
 import cats.Functor
 import cats.data.NonEmptyList
-
-import scala.util.control.ControlThrowable
-import scala.util.Try
-import cats.kernel.PartialOrder
+import cats.implicits.*
+import cats.kernel.{Order, PartialOrder}
 
 import scala.annotation.tailrec
+import scala.collection.immutable.{TreeMap, TreeSet}
+import scala.util.Try
+import scala.util.control.ControlThrowable
 
 object AdjacencyMaps {
   opaque type AdjacencyMap[A] = TreeMap[A, TreeSet[A]]
@@ -21,6 +20,8 @@ object AdjacencyMaps {
 
   extension [A](m: AdjacencyMap[A])(using Order[A]) {
 
+    def underlying: TreeMap[A, TreeSet[A]] = m
+    
     def edgeList: List[(A, A)] = for {
       (x, ys) <- m.toList
       y <- ys.toList
@@ -57,7 +58,7 @@ object AdjacencyMaps {
 
       case class BreakCycle[A](x: Cycle[A]) extends ControlThrowable
 
-      import NodeState._
+      import NodeState.*
       val nodeState = SortState[A](
         collection.mutable.TreeMap.empty,
         collection.mutable.TreeMap.empty,
@@ -169,7 +170,6 @@ object AdjacencyMaps {
   }
 
   given adjacencyMapOrder[A](using Order[A]): PartialOrder[AdjacencyMap[A]] =
-    import extensions._
     (x: AdjacencyMap[A], y: AdjacencyMap[A]) =>
       List(
         (x.vertexCount compare y.vertexCount).toDouble,

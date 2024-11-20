@@ -1,6 +1,8 @@
-import cats.{Monad, Monoid, Show}
-import cats.kernel.Order
+package ag
+
 import cats.implicits.*
+import cats.kernel.Order
+import cats.{Monad, Monoid, Show}
 
 import scala.collection.immutable.TreeSet
 
@@ -25,8 +27,8 @@ object AlgebraicGraph {
 
   }
 
-  import AdjacencyMaps._
-  import AdjacencyMaps.extensions._
+  import AdjacencyMaps.*
+  import AdjacencyMaps.extensions.*
 
   extension [A](g: Graph[A]) {
 

@@ -1,8 +1,9 @@
+package ag
+
+import ag.AlgebraicGraph.{Graph as G, *}
 import cats.kernel.Eq
 
 import scala.collection.immutable.TreeSet
-import AlgebraicGraph.{Graph => G}
-import AlgebraicGraph.*
 
 case class Relation[T](domain: TreeSet[T], relation: TreeSet[(T, T)])
 object Relation {

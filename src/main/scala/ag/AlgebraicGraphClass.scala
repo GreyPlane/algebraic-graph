@@ -1,6 +1,7 @@
-import Relation.*
-import cats.Order
-import cats.Eq
+package ag
+
+import ag.Relation.*
+import cats.{Eq, Order}
 import cats.implicits.*
 
 import scala.collection.immutable.TreeSet
