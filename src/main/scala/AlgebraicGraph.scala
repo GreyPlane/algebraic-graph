@@ -25,8 +25,9 @@ object AlgebraicGraph {
 
   }
 
-  import AdjacencyMap.extensions._
-  import AdjacencyMap._
+  import AdjacencyMaps._
+  import AdjacencyMaps.extensions._
+
   extension [A](g: Graph[A]) {
 
     def `+`(y: Graph[A]): Graph[A] = Graph.Overlay(g, y)
@@ -35,10 +36,10 @@ object AlgebraicGraph {
 
     def toAdjacencyMap(using Order[A]): AdjacencyMap[A] =
       g.fold[AdjacencyMap[A]](
-        AdjacencyMap.empty[A],
+        AdjacencyMaps.empty[A],
         _.vertex,
-        AdjacencyMap.overlay,
-        AdjacencyMap.connect
+        AdjacencyMaps.overlay,
+        AdjacencyMaps.connect
       )
 
     def vertexSet(using Order[A]): TreeSet[A] = g.fold[TreeSet[A]](

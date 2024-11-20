@@ -12,15 +12,14 @@ import cats.kernel.PartialOrder
 
 import scala.annotation.tailrec
 
-object AdjacencyMap {
-
+object AdjacencyMaps {
   opaque type AdjacencyMap[A] = TreeMap[A, TreeSet[A]]
 
-  def apply[A]: AdjacencyMap[A] => AdjacencyMap[A] = identity
+  object AdjacencyMap {
+    @inline def apply[A](m: AdjacencyMap[A]): AdjacencyMap[A] = m
+  }
 
   extension [A](m: AdjacencyMap[A])(using Order[A]) {
-
-    def unwarp: TreeMap[A, TreeSet[A]] = m
 
     def edgeList: List[(A, A)] = for {
       (x, ys) <- m.toList
@@ -65,7 +64,9 @@ object AdjacencyMap {
         collection.mutable.ListBuffer.empty
       )
       val vertices = m.keySet.toList.reverse
+
       def adjacent(x: A) = m.postSet(x).toList.reverse
+
       def exit(v: A) = {
         nodeState.entry.updateWith(v)(_.map {
           case Entered =>
@@ -75,6 +76,7 @@ object AdjacencyMap {
         })
         nodeState.order.prepend(v)
       }
+
       def retrace(
           curr: A,
           head: A,
@@ -85,6 +87,7 @@ object AdjacencyMap {
           if (xs.head == head) xs
           else aux(parent.get(xs.head).map(c => xs.prepend(c)).get)
         }
+
         aux(NonEmptyList.of(curr))
       }
 
@@ -112,11 +115,12 @@ object AdjacencyMap {
         }
         case _ => ()
       }
+
       try {
         vertices.foreach(dfsRoot)
         Right(nodeState.order.toList)
       } catch {
-        case e: BreakCycle[A] =>
+        case e: BreakCycle[_] =>
           Left(e.x)
       }
     }
@@ -127,25 +131,21 @@ object AdjacencyMap {
     AdjacencyMap[A](TreeMap.empty[A, TreeSet[A]])
 
   def vertex[A](x: A)(implicit order: Order[A]): AdjacencyMap[A] =
-    AdjacencyMap(TreeMap(x -> TreeSet.empty[A]))
+    AdjacencyMap[A](TreeMap(x -> TreeSet.empty[A]))
 
-  def overlay[A](x: AdjacencyMap[A], y: AdjacencyMap[A])(using
-      Order[A]
-  ): AdjacencyMap[A] = AdjacencyMap(
-    x.unionWith(y, _ union _)
-  )
+  def overlay[A](x: AdjacencyMap[A], y: AdjacencyMap[A])(using Order[A]): AdjacencyMap[A] =
+    AdjacencyMap[A](x.unionWith(y, _ union _))
 
-  def connect[A](x: AdjacencyMap[A], y: AdjacencyMap[A])(using
-      Order[A]
-  ): AdjacencyMap[A] = AdjacencyMap(
-    List(
-      x,
-      y,
-      TreeMap.from(
-        x.keys.map(_ -> TreeSet.from(y.keys))
-      )
-    ).reduce((a, b) => a.unionWith(b, _ union _))
-  )
+  def connect[A](x: AdjacencyMap[A], y: AdjacencyMap[A])(using Order[A]): AdjacencyMap[A] =
+    AdjacencyMap[A](
+      List(
+        x,
+        y,
+        TreeMap.from(
+          x.keys.map(_ -> TreeSet.from(y.keys))
+        )
+      ).reduce((a, b) => a.unionWith(b, _ union _))
+    )
 
   def fromAdjacencySets[A](
       ss: List[(A, Set[A])]
@@ -160,8 +160,8 @@ object AdjacencyMap {
 
   object extensions {
     extension [A](x: A)(using ord: Order[A]) {
-      def vertex: AdjacencyMap[A] = AdjacencyMap.vertex(x)
-      def edge(y: A): AdjacencyMap[A] = AdjacencyMap(
+      def vertex: AdjacencyMap[A] = AdjacencyMaps.vertex(x)
+      def edge(y: A): AdjacencyMap[A] = AdjacencyMap[A](
         if (x === y) TreeMap(x -> TreeSet.empty[A])
         else TreeMap(x -> TreeSet(y), y -> TreeSet.empty[A])
       )
