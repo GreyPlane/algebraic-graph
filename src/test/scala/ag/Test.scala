@@ -107,8 +107,8 @@ class Test extends AnyWordSpecLike with Matchers {
       List(2, 4, 6, 8)
     )
 
-    import AdjacencyMaps.extensions._
-    import AdjacencyMaps._
+    import AdjacencyMaps.*
+    import AdjacencyMaps.syntax.*
 
     val adm = m.toAdjacencyMap
     val steps = indexedGraph.toAdjacencyMap.underlying.map { case ((StepLike(name, stepType, criteria), i), branches) =>

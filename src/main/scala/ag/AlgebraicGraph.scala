@@ -28,7 +28,7 @@ object AlgebraicGraph {
   }
 
   import AdjacencyMaps.*
-  import AdjacencyMaps.extensions.*
+  import AdjacencyMaps.syntax.*
 
   extension [A](g: Graph[A]) {
 

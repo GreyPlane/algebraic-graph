@@ -157,17 +157,7 @@ object AdjacencyMaps {
     AdjacencyMap(vs.unionWith(es, _ union _))
   }
 
-  object extensions {
-    extension [A](x: A)(using ord: Order[A]) {
-      def vertex: AdjacencyMap[A] = AdjacencyMaps.vertex(x)
-      def edge(y: A): AdjacencyMap[A] = AdjacencyMap[A](
-        if (x === y) TreeMap(x -> TreeSet.empty[A])
-        else TreeMap(x -> TreeSet(y), y -> TreeSet.empty[A])
-      )
-    }
-  }
-
-  given adjacencyMapOrder[A](using Order[A]): PartialOrder[AdjacencyMap[A]] =
+  given [A](using Order[A]): PartialOrder[AdjacencyMap[A]] =
     (x: AdjacencyMap[A], y: AdjacencyMap[A]) =>
       List(
         (x.vertexCount compare y.vertexCount).toDouble,
@@ -181,5 +171,15 @@ object AdjacencyMaps {
           .map(_.toDouble)
           .getOrElse(Double.NaN)
       ).combineAll
+
+  object syntax {
+    extension [A](x: A)(using ord: Order[A]) {
+      def vertex: AdjacencyMap[A] = AdjacencyMaps.vertex(x)
+      def edge(y: A): AdjacencyMap[A] = AdjacencyMap[A](
+        if (x === y) TreeMap(x -> TreeSet.empty[A])
+        else TreeMap(x -> TreeSet(y), y -> TreeSet.empty[A])
+      )
+    }
+  }
 
 }
