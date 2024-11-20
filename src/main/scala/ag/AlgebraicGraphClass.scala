@@ -8,22 +8,15 @@ import scala.collection.immutable.TreeSet
 
 object AlgebraicGraphClass {
   trait Graph[G] {
-
     type Vertex
-
     val empty: G
-
     def vertex(vertex: Vertex): G
-
     def overlay(x: G, y: G): G
-
     def connect(x: G, y: G): G
-
   }
 
   object Graph {
     type Aux[G, V] = Graph[G] { type Vertex = V }
-
     def apply[G, V](
         e: G,
         f1: V => G,
@@ -32,11 +25,8 @@ object AlgebraicGraphClass {
     ): Aux[G, V] = new Graph[G] {
       type Vertex = V
       val empty: G = e
-
       def vertex(vertex: V): G = f1(vertex)
-
       def overlay(x: G, y: G): G = f2(x, y)
-
       def connect(x: G, y: G): G = f3(x, y)
     }
   }
@@ -44,51 +34,36 @@ object AlgebraicGraphClass {
   // why there has to be an empty call
   opaque type Transpose[V] = [G] => () => Graph.Aux[G, V] ?=> G
 
-  extension [V](x: Transpose[V])
-    def transpose[G](using Graph.Aux[G, V]): G = x()
+  extension [V](x: Transpose[V]) def transpose[G](using Graph.Aux[G, V]): G = x()
 
   given [V]: Graph.Aux[Transpose[V], V] =
     Graph(
       [G] => () => (g: Graph.Aux[G, V]) ?=> g.empty,
       x => [G] => () => (g: Graph.Aux[G, V]) ?=> g.vertex(x),
-      (x, y) =>
-        [G] =>
-          () => (g: Graph.Aux[G, V]) ?=> g.overlay(x.transpose, y.transpose),
-      (x, y) =>
-        [G] =>
-          () => (g: Graph.Aux[G, V]) ?=> g.connect(y.transpose, x.transpose)
+      (x, y) => [G] => () => (g: Graph.Aux[G, V]) ?=> g.overlay(x.transpose, y.transpose),
+      (x, y) => [G] => () => (g: Graph.Aux[G, V]) ?=> g.connect(y.transpose, x.transpose)
     )
 
   opaque type GraphFunctor[A] = [G, V] => (A => V) => Graph.Aux[G, V] ?=> G
 
-  extension [A](x: GraphFunctor[A])
-    def gmap[G, V](f: A => V)(using Graph.Aux[G, V]): G = x(f)
+  extension [A](x: GraphFunctor[A]) def gmap[G, V](f: A => V)(using Graph.Aux[G, V]): G = x(f)
 
   given [A]: Graph.Aux[GraphFunctor[A], A] = Graph(
     [G, V] => (_: A => V) => (g: Graph.Aux[G, V]) ?=> g.empty,
     v => [G, V] => (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.vertex(f(v)),
-    (x: GraphFunctor[A], y: GraphFunctor[A]) =>
-      [G, V] =>
-        (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.overlay(x.gmap(f), y.gmap(f)),
-    (x: GraphFunctor[A], y: GraphFunctor[A]) =>
-      [G, V] =>
-        (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.connect(x.gmap(f), y.gmap(f)),
+    (x: GraphFunctor[A], y: GraphFunctor[A]) => [G, V] => (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.overlay(x.gmap(f), y.gmap(f)),
+    (x: GraphFunctor[A], y: GraphFunctor[A]) => [G, V] => (f: A => V) => (g: Graph.Aux[G, V]) ?=> g.connect(x.gmap(f), y.gmap(f))
   )
 
   opaque type GraphMonad[A] = [G, V] => (A => G) => Graph.Aux[G, V] ?=> G
 
-  extension [A](x: GraphMonad[A])
-    def bind[G, V](f: A => G)(using Graph.Aux[G, V]): G = x(f)
+  extension [A](x: GraphMonad[A]) def bind[G, V](f: A => G)(using Graph.Aux[G, V]): G = x(f)
 
   given [A]: Graph.Aux[GraphMonad[A], A] = Graph(
     [G, V] => (_: A => G) => (g: Graph.Aux[G, V]) ?=> g.empty,
     v => [G, V] => (f: A => G) => (g: Graph.Aux[G, V]) ?=> f(v),
-    (x: GraphMonad[A], y: GraphMonad[A]) =>
-      [G, V] =>
-        (f: A => G) => (g: Graph.Aux[G, V]) ?=> g.overlay(x.bind(f), y.bind(f)),
-    (x: GraphMonad[A], y: GraphMonad[A]) =>
-      [G, V] =>
-        (f: A => G) => (g: Graph.Aux[G, V]) ?=> g.connect(x.bind(f), y.bind(f))
+    (x: GraphMonad[A], y: GraphMonad[A]) => [G, V] => (f: A => G) => (g: Graph.Aux[G, V]) ?=> g.overlay(x.bind(f), y.bind(f)),
+    (x: GraphMonad[A], y: GraphMonad[A]) => [G, V] => (f: A => G) => (g: Graph.Aux[G, V]) ?=> g.connect(x.bind(f), y.bind(f))
   )
 
   given relationGraph[V](using Order[V]): Graph.Aux[Relation[V], V] =
@@ -122,10 +97,8 @@ object AlgebraicGraphClass {
   def clique[G, V](vs: List[V])(using g: Graph.Aux[G, V]): G =
     vs.map(g.vertex).foldRight(g.empty)(g.connect)
 
-  def isSubgraphOf[G, V](x: G, y: G)(using
-      g: Graph.Aux[G, V],
-      eq: Eq[G]
-  ): Boolean = g.overlay(x, y) === y
+  def isSubgraphOf[G, V](x: G, y: G)(using g: Graph.Aux[G, V], eq: Eq[G]): Boolean =
+    g.overlay(x, y) === y
 
   def edges[G, V](es: List[(V, V)])(using g: Graph.Aux[G, V]): G =
     es.map { case (x, y) => edge(x, y) }.foldRight(g.empty)(g.overlay)
@@ -145,8 +118,7 @@ object AlgebraicGraphClass {
   def star[G, V](v: V, vs: List[V])(using g: Graph.Aux[G, V]): G =
     g.connect(g.vertex(v), vertices(vs))
 
-  def induce[G, V](p: V => Boolean, gm: GraphMonad[V])(using
-      g: Graph.Aux[G, V]
-  ): G = gm.bind[G, V](x => if (p(x)) g.vertex(x) else g.empty)
+  def induce[G, V](p: V => Boolean, gm: GraphMonad[V])(using g: Graph.Aux[G, V]): G =
+    gm.bind[G, V](x => if (p(x)) g.vertex(x) else g.empty)
 
 }
