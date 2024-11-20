@@ -1,6 +1,6 @@
 package ag
 
-import ag.Relation.*
+import Relation.*
 import cats.{Eq, Order}
 import cats.implicits.*
 

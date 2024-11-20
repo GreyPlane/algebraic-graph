@@ -3,12 +3,10 @@ package ag
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import cats._
-import cats.implicits._
+import cats.implicits.given
 import cats.derived.*
 
-import scala.annotation.tailrec
 import scala.collection.immutable.TreeMap
-import scala.collection.mutable
 
 case class Branch(toStep: Int, criteria: Int) derives Eq, Order
 case class StepLike(name: String, stepType: String, criteria: Int) derives Eq, Order {

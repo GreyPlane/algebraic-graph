@@ -1,14 +1,12 @@
 package ag
 
-import ag.utils.*
-import cats.Functor
+import utils.*
 import cats.data.NonEmptyList
 import cats.implicits.*
 import cats.kernel.{Order, PartialOrder}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{TreeMap, TreeSet}
-import scala.util.Try
 import scala.util.control.ControlThrowable
 
 object AdjacencyMaps {
@@ -21,7 +19,7 @@ object AdjacencyMaps {
   extension [A](m: AdjacencyMap[A])(using Order[A]) {
 
     def underlying: TreeMap[A, TreeSet[A]] = m
-    
+
     def edgeList: List[(A, A)] = for {
       (x, ys) <- m.toList
       y <- ys.toList

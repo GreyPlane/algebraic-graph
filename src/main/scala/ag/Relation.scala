@@ -1,6 +1,6 @@
 package ag
 
-import ag.AlgebraicGraph.{Graph as G, *}
+import AlgebraicGraph.{Graph as G, *}
 import cats.kernel.Eq
 
 import scala.collection.immutable.TreeSet
