@@ -76,9 +76,7 @@ object AlgebraicGraph {
       def flatMap[A, B](fa: Graph[A])(f: A => Graph[B]): Graph[B] =
         fa.fold(Graph.empty[B], f, Overlay[B], Connect[B])
 
-      def tailRecM[A, B](a: A)(f: A => Graph[Either[A, B]]): Graph[B] = f(
-        a
-      ) match {
+      def tailRecM[A, B](a: A)(f: A => Graph[Either[A, B]]): Graph[B] = f(a) match {
         case Empty     => Empty
         case Vertex(a) => a.fold(tailRecM(_)(f), Vertex(_))
         case Overlay(x, y) =>
@@ -122,10 +120,11 @@ object AlgebraicGraph {
       go(false, t);
     }
 
-    def empty[A]: Graph[A] = Empty
+    @inline def empty[A]: Graph[A] = Empty
     @inline def vertex[A](a: A): Graph[A] = Vertex(a)
     @inline def overlay[A](x: Graph[A], y: Graph[A]): Graph[A] = Overlay(x, y)
     @inline def connect[A](x: Graph[A], y: Graph[A]): Graph[A] = Connect(x, y)
+
     def overlays[A](xs: List[Graph[A]]) = xs.foldRight(empty[A])(_ + _)
     def connects[A](xs: List[Graph[A]]) = xs.foldRight(empty[A])(_ * _)
     def edge[A](e: (A, A)): Graph[A] = vertex(e._1) * vertex(e._2)
@@ -133,18 +132,13 @@ object AlgebraicGraph {
     def vertices[A](vs: List[A]) = overlays(vs.map(vertex))
     def clique[A](vs: List[A]) = connects(vs.map(vertex))
     def star[A](v: A, vs: List[A]): Graph[A] = connect(vertex(v), vertices(vs))
-    def ladder[A](vs: List[A], step: Int): Graph[A] = overlays(
-      vs.partition(step, 1).map(vvs => star(vvs.head, vvs.tail))
-    )
+    def ladder[A](vs: List[A], step: Int): Graph[A] = overlays(vs.partition(step, 1).map(vvs => star(vvs.head, vvs.tail)))
     def path[A](vs: List[A]): Graph[A] = vs match {
       case Nil      => empty[A]
       case x :: Nil => vertex(x)
-      case _ =>
-        overlays(vs.zip(vs.tail).map(v => connect(vertex(v._1), vertex(v._2))))
+      case _        => overlays(vs.zip(vs.tail).map(v => connect(vertex(v._1), vertex(v._2))))
     }
-    def mergeVertices[A](p: A => Boolean, v: A, g: Graph[A])(implicit
-        order: Order[A]
-    ) = g.map(u => if (p(u)) v else u)
+    def mergeVertices[A](p: A => Boolean, v: A, g: Graph[A])(implicit order: Order[A]) = g.map(u => if (p(u)) v else u)
     def box[A, B](x: Graph[A], y: Graph[B]): Graph[(A, B)] = {
       val xs = y.toList.map(b => x.map(_ -> b))
       val ys = x.toList.map(a => y.map(a -> _))

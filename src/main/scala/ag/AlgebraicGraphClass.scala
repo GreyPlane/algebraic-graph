@@ -1,6 +1,5 @@
 package ag
 
-import Relation.*
 import cats.{Eq, Order}
 import cats.implicits.*
 
@@ -66,7 +65,7 @@ object AlgebraicGraphClass {
     (x: GraphMonad[A], y: GraphMonad[A]) => [G, V] => (f: A => G) => (g: Graph.Aux[G, V]) ?=> g.connect(x.bind(f), y.bind(f))
   )
 
-  given relationGraph[V](using Order[V]): Graph.Aux[Relation[V], V] =
+  given [V](using Order[V]): Graph.Aux[Relation[V], V] =
     Graph(
       Relation(TreeSet.empty, TreeSet.empty),
       v => Relation(TreeSet(v), TreeSet.empty),
